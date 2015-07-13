@@ -1,43 +1,40 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 ## Loading and preprocessing the data
-```{r}
+
+```r
         library("ggplot2")
         unzip("activity.zip")
         Activity<-read.csv("activity.csv")
         Activity$date<-as.POSIXct(as.Date(Activity$date))
-      
-
 ```
 
 
 ## What is mean total number of steps taken per day?
 To analyse this I aggregate the data, summing over all intervals in a given day:
-```{r}
+
+```r
         DailySteps<-with(Activity, aggregate(steps, by=list(date), sum, na.rm=TRUE))
         names(DailySteps)[2]<-"StepsPerDay"
-     
 ```
 
 I show a histogram of the daily number of steps, as well as a histogram disregarding days with zero steps - these probably represent missing data. 
 
-```{r}
+
+```r
         with(DailySteps, hist(StepsPerDay,
                               main="Numbers of steps per day as reported"))
-        
 ```
 
-```{r}
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png) 
+
+
+```r
         MeanDailyStep<-mean(DailySteps$StepsPerDay)
         MedianDailyStep<-median(DailySteps$StepsPerDay)
 ```
 
-The mean number of steps taken daily is `r format(MeanDailyStep, digits = 5)` and the median is `r format(MedianDailyStep, digits = 5)`
+The mean number of steps taken daily is 9354.2 and the median is 10395
 
 
 
@@ -45,50 +42,51 @@ The mean number of steps taken daily is `r format(MeanDailyStep, digits = 5)` an
 
 To analyse the typical daily routine, I will now summarise the dataset over all days, joining all activity in the same 5-minute interval
 
-```{r}
+
+```r
         TimeSteps<-with(Activity, aggregate(steps, by=list(interval), mean, na.rm=TRUE))
         names(TimeSteps)<-c("interval","Steps")
-     
 ```
 The mean daily pattern of actifity presents as follows
 
-```{r}
+
+```r
         with(TimeSteps, 
              plot(x=interval, y=Steps, type="l"))
-     
 ```
 
-```{r}
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png) 
+
+
+```r
         BusyTime<-with(TimeSteps, interval[which.max(Steps)])
-     
 ```
 
-The busiest time of day seems to be  at the interval named `r BusyTime`
+The busiest time of day seems to be  at the interval named 835
 
 ## Imputing missing values
 
-```{r}
+
+```r
         NAs<-sum(is.na(Activity$steps))
-     
 ```
 ###Interpolating missing values
-The data are significantly polluted with `r NAs` missing values. To get a better view on daily activity, these have to be interpolated. I will take the median value of activity in that time interval and imput that in place of the missing value. For this I nearly repeat the beginning of the previous part:
+The data are significantly polluted with 2304 missing values. To get a better view on daily activity, these have to be interpolated. I will take the median value of activity in that time interval and imput that in place of the missing value. For this I nearly repeat the beginning of the previous part:
 
-```{r}
+
+```r
         TimeStepsMed<-with(Activity, aggregate(steps, by=list(interval), median, na.rm=TRUE))
         names(TimeStepsMed)<-c("interval","Steps")
-     
 ```
 
 To keep from polluting the original dataset with artificial values I will do that in a new one. 
 
-```{r}
+
+```r
         ActivityNoNA<-Activity
         NAlist<-is.na(Activity$steps)
         ActivityNoNA$steps[NAlist]<-
                 with(TimeStepsMed,  Steps[match(ActivityNoNA$interval[NAlist],interval)])
-        
-     
 ```
 ActivityNoNA now contains no missing values.
 
@@ -96,33 +94,40 @@ ActivityNoNA now contains no missing values.
 
 Following is a histogram of daily step numbers after filling the blanks.
 
-```{r}
+
+```r
         DailySteps<-with(ActivityNoNA, aggregate(steps, by=list(date), sum, na.rm=TRUE))
         names(DailySteps)[2]<-"StepsPerDay"
          with(DailySteps, hist(StepsPerDay,
                               main="Numbers of steps per day - interpolated"))
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png) 
+
+```r
         MeanDailyStep<-mean(DailySteps$StepsPerDay)
         MedianDailyStep<-median(DailySteps$StepsPerDay)
 ```
 
-The operation resulted in the mean becoming `r format(MeanDailyStep, digits = 5)` and the median  `r format(MedianDailyStep, digits = 5)`. The median is unchanged and the mean has increased.
+The operation resulted in the mean becoming 9503.9 and the median  10395. The median is unchanged and the mean has increased.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 I prepare to cut the data with respect to weekend/weekday
         
-```{r}
+
+```r
   ActivityNoNA$WEND<-format(ActivityNoNA$date, format="%w")
         ActivityNoNA$WEND<-ActivityNoNA$WEND=="0"|ActivityNoNA$WEND=="6"
         ActivityNoNA$WEND<-as.factor(ActivityNoNA$WEND)
         levels(ActivityNoNA$WEND)<-c("weekday", "weekend")
-        
-```          
+```
 
 We plot the data, segregating by the newly created factor.
 
-```{r}
+
+```r
         TimeSteps<-with(ActivityNoNA, aggregate(steps, by=list(interval, WEND), mean, na.rm=TRUE))
         names(TimeSteps)<-c("interval","day_type", "Mean_steps")
         
@@ -134,7 +139,6 @@ We plot the data, segregating by the newly created factor.
                 g<-g+ ggtitle("Activity comparison between weekends and weekdays") 
         
         g
-         
 ```
 
-We can see a significant difference between weekdays and weekends with activity on weekends distributed more evenly and weekday activity peaking more.
+![](PA1_template_files/figure-html/unnamed-chunk-13-1.png) 
